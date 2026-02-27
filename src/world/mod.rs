@@ -1,62 +1,73 @@
-use bevy::prelude::{Commands, Component, Entity, Query, With, World};
-use log::info;
+pub mod bioms;
+pub mod blocks;
+pub mod chunks;
+pub mod utils;
+pub mod seeding;
 
+use bevy::platform::collections::{HashMap, HashSet};
+use bevy::prelude::Commands;
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+pub(crate) use crate::config::Seed;
+use crate::config::SpawnPoint;
+use crate::player::movement::movement;
+use crate::world::chunks::{generate_chunk, generate_neighbor_chunks};
 use bevy::prelude::*;
-use perlin_noise::PerlinNoise;
 
-pub fn setup_chunks(
+pub struct WorldPlugin;
+
+impl Plugin for WorldPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Seed>()
+            .init_resource::<SpawnPoint>()
+            .init_resource::<HeightMap>()
+            .init_resource::<SpawnedChunks>()
+            .add_systems(
+                PreStartup,
+                (setup_chunk, generate_neighbor_chunks.after(setup_chunk)),
+            )
+            .add_systems(Update, generate_neighbor_chunks.after(movement));
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct HeightMap(HashMap<IVec2, i32>);
+
+#[derive(Resource, Default)]
+pub struct SpawnedChunks(HashSet<IVec2>);
+
+#[derive(Resource, Default)]
+pub struct GenerationNoise {
+    height: Vec3,
+    temperature: Vec3,
+    humidity: Vec3,
+}
+
+
+
+pub fn setup_chunk(
     mut commands: Commands,
+    mut spawned: ResMut<SpawnedChunks>,
+    mut height_map: ResMut<HeightMap>,
+    seed: ResMut<Seed>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut spawn_point: ResMut<SpawnPoint>,
 ) {
-    let perlin = PerlinNoise::new();
-    commands
-        .spawn((
-            Chunk,
-            Visibility::default(),
-            Name::new("Chunk"),
-            Transform::default(),
-        ))
-        .with_children(|parent| {
-            for x in 0..3 {
-                for z in 0..3 {
-                    let scale = 0.1;
-                    let amplitude = 5.0;
+    let coord = IVec2::new(0, 0);
 
-                    let noise = perlin.get3d([
-                        x as f64 * scale,
-                        z as f64 * scale,
-                        0.0,
-                    ]);
+    spawned.0.insert(coord);
 
-                    let height = (noise * amplitude).floor();
+    generate_chunk(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        &mut height_map,
+        seed.0 as f32,
+        coord,
+    );
 
-                    parent.spawn((
-                        Name::new("Block"),
-                        Block { internal: 0 },
-                        Mesh3d(meshes.add(Cuboid::default())),
-                        MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
-                        Transform::from_xyz(
-                            x as f32,
-                            height as f32,
-                            z as f32,
-                        ),
-                    ));
-                }
-            }
-        });
-}
+    let height = height_map.0.get(&coord).unwrap_or(&0);
 
-#[derive(Component, Debug)]
-pub struct Chunk;
-
-#[derive(Component, Debug)]
-pub struct Block {
-    pub internal: u8,
-}
-
-pub(crate) fn spawned_chunks(query: Query<&Children, With<Chunk>>) {
-    for children in query.iter() {
-        info!("Chunk has {} children blocks", children.len());
-    }
+    spawn_point.0 = IVec3::new(coord.x, *height, coord.y);
 }

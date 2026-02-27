@@ -1,2 +1,2 @@
 [env]
-WGPU_BACKEND = "dx12"
+WGPU_BACKEND = "vulkan"
