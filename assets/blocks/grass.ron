@@ -1,0 +1,7 @@
+(
+    id: "grass",
+    display_name: "Grass Block",
+    solid: true,
+    hardness: 0.6,
+    color: (r:0.35, g:0.65, b:0.25, a:1.0),
+)

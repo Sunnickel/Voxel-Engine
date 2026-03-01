@@ -1,0 +1,7 @@
+(
+    id: "stone",
+    display_name: "Stone",
+    solid: true,
+    hardness: 1.5,
+    color: (r:0.50, g:0.50, b:0.52, a:1.0),
+)

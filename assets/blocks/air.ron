@@ -1,0 +1,7 @@
+(
+    id: "air",
+    display_name: "Air",
+    solid: false,
+    hardness: 0.0,
+    color: (r:0.0, g:0.0, b:0.0, a:0.0),
+)

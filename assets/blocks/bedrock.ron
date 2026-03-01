@@ -1,0 +1,7 @@
+(
+    id: "bedrock",
+    display_name: "Bedrock",
+    solid: true,
+    hardness: 999.0,
+    color: (r:0.15, g:0.15, b:0.15, a:1.0),
+)

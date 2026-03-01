@@ -1,0 +1,7 @@
+(
+    id: "gravel",
+    display_name: "Gravel",
+    solid: true,
+    hardness: 0.6,
+    color: (r:0.55, g:0.52, b:0.50, a:1.0),
+)

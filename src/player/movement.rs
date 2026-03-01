@@ -171,7 +171,7 @@ pub(crate) fn movement(
         &MovementAcceleration,
         &JumpImpulse,
         &mut LinearVelocity,
-        &Transform, 
+        &Transform,
         Has<Grounded>,
     )>,
 ) {
@@ -183,19 +183,17 @@ pub(crate) fn movement(
         {
             match event {
                 MovementAction::Move(direction) => {
-                    // Get the forward and right vectors from the player's rotation (Y axis only)
                     let forward = transform.forward();
                     let right = transform.right();
 
-                    // Flatten to XZ plane (ignore any Y component so you don't fly)
                     let forward = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
                     let right = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
 
-                    let wish_dir = (forward * direction.y as f32 + right * direction.x as f32)
-                        .normalize_or_zero();
+                    let wish_dir =
+                        (forward * direction.y + right * direction.x).normalize_or_zero();
 
-                    linear_velocity.x += wish_dir.x * movement_acceleration.0 as f32 * delta_time as f32;
-                    linear_velocity.z += wish_dir.z * movement_acceleration.0 as f32 * delta_time as f32;
+                    linear_velocity.x += wish_dir.x * movement_acceleration.0 * delta_time;
+                    linear_velocity.z += wish_dir.z * movement_acceleration.0 * delta_time;
                 }
                 MovementAction::Jump => {
                     if is_grounded {

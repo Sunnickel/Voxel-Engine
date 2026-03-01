@@ -1,0 +1,7 @@
+(
+    id: "dirt",
+    display_name: "Dirt",
+    solid: true,
+    hardness: 0.5,
+    color: (r:0.55, g:0.35, b:0.20, a:1.0),
+)

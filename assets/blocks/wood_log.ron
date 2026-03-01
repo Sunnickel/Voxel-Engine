@@ -1,0 +1,7 @@
+(
+    id: "wood",
+    display_name: "Wood",
+    solid: true,
+    hardness: 0.8,
+    color: (r:0.55, g:0.35, b:0.20, a:1.0),
+)

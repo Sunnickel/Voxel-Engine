@@ -1,0 +1,7 @@
+(
+    id: "leaves",
+    display_name: "Leaves",
+    solid: true,
+    hardness: 0.2,
+    color: (r:0.25, g:0.65, b:0.25, a:0.8),
+)

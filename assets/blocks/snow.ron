@@ -1,0 +1,7 @@
+(
+    id: "snow",
+    display_name: "Snow",
+    solid: true,
+    hardness: 0.2,
+    color: (r:0.92, g:0.95, b:1.0, a:1.0),
+)

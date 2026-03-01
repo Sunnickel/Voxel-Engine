@@ -1,16 +1,15 @@
-pub mod config;
+mod config;
 mod player;
+mod states;
 mod world;
 
-use std::hash::{DefaultHasher, Hash, Hasher};
-use crate::config::SpawnPoint;
-use crate::player::PlayerPlugin;
-use crate::world::{Seed, WorldPlugin};
-use avian3d::PhysicsPlugins;
+use crate::config::{BlockRegistry, GenerationNoise, GlobalAssets, HeightMap, LastPlayerChunk, PlayerSpawned, Seed, SpawnChunkGenerated, SpawnPoint, SpawnedChunks, WorldReady};
+use crate::states::{AppLoadingPlugin, GameLoadingPlugin, GamePlugin, GameState, MenuPlugin};
+use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
 use bevy::render::settings::{Backends, RenderCreation, WgpuSettings};
 use bevy::render::RenderPlugin;
-use bevy::window::{CursorGrabMode, CursorOptions};
+use bevy_lunex::UiLunexPlugins;
 
 fn main() {
     App::new()
@@ -19,37 +18,37 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Voxel Engine".into(),
+                        present_mode: bevy::window::PresentMode::AutoNoVsync,
                         ..default()
-                    }),
-                    primary_cursor_options: Option::from(CursorOptions {
-                        visible: false,
-                        grab_mode: CursorGrabMode::Confined,
-                        hit_test: true,
                     }),
                     ..default()
                 })
                 .set(RenderPlugin {
                     render_creation: RenderCreation::Automatic(WgpuSettings {
-                        backends: Some(Backends::VULKAN),
+                        backends: Some(Backends::DX12),
                         ..default()
                     }),
+                    synchronous_pipeline_compilation: false,
+                    ..default()
+                })
+                .set(LogPlugin {
+                    level: (Level::INFO),
                     ..default()
                 }),
-            PhysicsPlugins::default(),
-            WorldPlugin,
-            PlayerPlugin,
+            UiLunexPlugins,
         ))
-        .add_systems(Startup, setup)
+        .init_state::<GameState>()
+        .init_resource::<GlobalAssets>()
+        .init_resource::<SpawnPoint>()
+        .init_resource::<HeightMap>()
+        .init_resource::<SpawnedChunks>()
+        .init_resource::<Seed>()
+        .init_resource::<GenerationNoise>()
+        .init_resource::<PlayerSpawned>()
+        .init_resource::<SpawnChunkGenerated>()
+        .init_resource::<LastPlayerChunk>()
+        .init_resource::<WorldReady>()
+        .init_resource::<BlockRegistry>()
+        .add_plugins((AppLoadingPlugin, MenuPlugin, GameLoadingPlugin, GamePlugin))
         .run();
-}
-
-fn setup(_commands: Commands, mut seed: ResMut<Seed>, mut spawn_point: ResMut<SpawnPoint>) {
-    seed.0 = string_to_seed("254");
-    spawn_point.0 = IVec3::new(8, 0, 8);
-}
-
-fn string_to_seed(input: &str) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    hasher.write_u64(input.as_bytes().as_ptr() as u64);
-    hasher.finish()
 }
