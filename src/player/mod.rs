@@ -9,8 +9,6 @@ use crate::player::movement::{
     movement, update_grounded, CharacterControllerBundle, MovementAction,
 };
 use crate::states::{GamePlugin, GameState};
-use crate::world::setup_chunk;
-use avian3d::math::{Scalar, Vector};
 use avian3d::prelude::{Collider, NarrowPhaseSystems, PhysicsSchedule};
 use bevy::prelude::*;
 
@@ -73,7 +71,7 @@ fn spawn_player(
                 Collider::cuboid(1.0, 2.0, 1.0),
                 Vec3::NEG_Y * 9.81 * 2.0,
             )
-            .with_movement(50.0, 0.92, 7.0, 30f32.to_radians()),
+                .with_movement(50.0, 0.92, 7.0, 30f32.to_radians()),
         ))
         .with_children(|p| {
             p.spawn((

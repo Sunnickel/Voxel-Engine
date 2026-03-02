@@ -1,0 +1,23 @@
+(
+    id: "plains",
+    display_name: "Plains",
+
+    wetness: 0.5,
+    height: 0.4,
+    temperature: 0.6,
+    continentalness: 0.5,
+    erosion: 0.3,
+
+    height_multiplier: 1,
+    tint: (
+        r: 120,
+        g: 200,
+        b: 120,
+        a: 255
+    ),
+
+    surface: "grass",
+    underground: "stone",
+    underwater: "gravel",
+    top_layer_threshold: 2,
+)

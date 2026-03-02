@@ -1,10 +1,11 @@
-use crate::config::{BlockRegistry, LastPlayerChunk, CHUNK_SIZE, MAX_HEIGHT};
+use crate::config::{BiomRegistry, BlockRegistry, LastPlayerChunk, CHUNK_SIZE, MAX_HEIGHT};
 use crate::player::Player;
 use crate::states::GamePlugin;
+use crate::world::bioms::{pick_biome, BiomDef, Climate};
 use crate::world::blocks::{block_color, is_air, FACES};
 use crate::world::utils::player_chunk_coords;
 use crate::world::{GenerationNoise, HeightMap, SpawnedChunks};
-use avian3d::prelude::{Collider, ColliderConstructor, ColliderConstructorHierarchy, Friction, RigidBody};
+use avian3d::prelude::{Collider, Friction, RigidBody};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::math::Vec3;
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
@@ -43,14 +44,19 @@ fn terrain_block(
     wy: i32,
     surface_height: i32,
     noise: &GenerationNoise,
-    registry: &BlockRegistry,
+    block_registry: &BlockRegistry,
+    biom_registry: &BiomRegistry,
+    biome: &BiomDef,
 ) -> u16 {
     if wy > surface_height {
-        return registry.air;
+        if wy <= 0 {
+            return block_registry.get_or_air("water");
+        }
+        return block_registry.air;
     }
 
     if wy == 0 {
-        return registry.get_or_air("bedrock");
+        return block_registry.get_or_air("bedrock");
     }
 
     let cave_val = simplex_noise_3d_seeded(
@@ -58,22 +64,24 @@ fn terrain_block(
         noise.height + 42.0,
     );
 
+    if wy > 1 && wy < surface_height && cave_val > 0.65 {
+        return block_registry.air;
+    }
+
     if wy == surface_height {
-        if surface_height > 8 {
-            registry.get_or_air("snow")
-        } else if surface_height < -2 {
-            registry.get_or_air("sand")
+        if surface_height <= 0 {
+            biome.underwater
         } else {
-            registry.get_or_air("grass")
+            biome.surface
         }
-    } else if wy >= surface_height - 3 {
+    } else if wy >= surface_height - biome.top_layer_threshold {
         if cave_val > 0.6 {
-            registry.get_or_air("gravel")
+            block_registry.get_or_air("gravel")
         } else {
-            registry.get_or_air("dirt")
+            biome.underground
         }
     } else {
-        registry.get_or_air("stone")
+        block_registry.get_or_air("stone")
     }
 }
 
@@ -82,9 +90,11 @@ fn generate_block_data(
     cz: i32,
     noise: &GenerationNoise,
     height_map: &mut HeightMap,
-    registry: &BlockRegistry,
+    _climate: &Climate,
+    block_registry: &BlockRegistry,
+    biom_registry: &BiomRegistry,
 ) -> ChunkData {
-    let mut data = ChunkData::empty(registry.air);
+    let mut data = ChunkData::empty(block_registry.air);
 
     for x in 0..CHUNK_SIZE as usize {
         for z in 0..CHUNK_SIZE as usize {
@@ -100,13 +110,22 @@ fn generate_block_data(
                 noise.height + 1.0,
             );
 
+            let col_climate = Climate {
+                temperature: noise.temperature(wx, wz),
+                wetness: noise.wetness(wx, wz),
+                height: noise.height(wx, wz),
+                continentalness: noise.continentalness(wx, wz),
+            };
+            let biome = pick_biome(&col_climate, &biom_registry.defs);
+
             let surface = (8.0 + n1 * 4.0 + n2 * 6.0).floor() as i32;
             let surface = surface.clamp(2, MAX_HEIGHT - 1);
 
             height_map.0.insert(IVec2::new(wx, wz), surface);
 
             for y in 0..MAX_HEIGHT as usize {
-                data.blocks[x][y][z] = terrain_block(wx, y as i32, surface, noise, registry);
+                data.blocks[x][y][z] =
+                    terrain_block(wx, y as i32, surface, noise, block_registry, biom_registry, biome);
             }
         }
     }
@@ -176,14 +195,30 @@ pub fn generate_chunk(
     materials: &mut Assets<StandardMaterial>,
     height_map: &mut HeightMap,
     generation_noise: &mut GenerationNoise,
-    registry: &BlockRegistry,
+    block_register: &BlockRegistry,
+    biom_registry: &BiomRegistry,
     coord: IVec2,
 ) {
     let cx = coord.x;
     let cz = coord.y;
 
-    let data = generate_block_data(cx, cz, generation_noise, height_map, registry);
-    let mesh = build_chunk_mesh(&data, registry);
+    let climate = Climate {
+        temperature: generation_noise.temperature(cx, cz),
+        wetness: generation_noise.wetness(cx, cz),
+        height: generation_noise.height(cx, cz),
+        continentalness: generation_noise.continentalness(cx, cz),
+    };
+
+    let data = generate_block_data(
+        cx,
+        cz,
+        generation_noise,
+        height_map,
+        &climate,
+        block_register,
+        biom_registry,
+    );
+    let mesh = build_chunk_mesh(&data, block_register);
 
     let collider = build_collider_from_mesh(&mesh);
 
@@ -258,7 +293,8 @@ pub fn generate_neighbor_chunks(
     mut generation_noise: ResMut<GenerationNoise>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    registry: Res<BlockRegistry>,
+    block_registry: Res<BlockRegistry>,
+    biom_registry: Res<BiomRegistry>,
 ) {
     let tf = match player.single() {
         Ok(tf) => tf,
@@ -274,29 +310,28 @@ pub fn generate_neighbor_chunks(
     last_chunk.0 = Some(current_chunk);
     info!("Player entered new chunk {:?}", current_chunk);
 
-    let neighbors = [
-        IVec2::new(current_chunk.x, current_chunk.y),
-        IVec2::new(current_chunk.x + 1, current_chunk.y),
-        IVec2::new(current_chunk.x - 1, current_chunk.y),
-        IVec2::new(current_chunk.x, current_chunk.y + 1),
-        IVec2::new(current_chunk.x, current_chunk.y - 1),
-        IVec2::new(current_chunk.x + 1, current_chunk.y + 1),
-        IVec2::new(current_chunk.x - 1, current_chunk.y - 1),
-        IVec2::new(current_chunk.x + 1, current_chunk.y - 1),
-        IVec2::new(current_chunk.x - 1, current_chunk.y + 1),
-    ];
+    let radius: i32 = 16;
 
-    for n in neighbors {
-        if spawned.0.insert(n) {
-            generate_chunk(
-                &mut commands,
-                &mut meshes,
-                &mut materials,
-                &mut height_map,
-                &mut generation_noise,
-                &registry,
-                n,
-            );
+    for dx in -radius..=radius {
+        for dy in -radius..=radius {
+            if dx * dx + dy * dy > radius * radius {
+                continue;
+            }
+
+            let chunk_coord = IVec2::new(current_chunk.x + dx, current_chunk.y + dy);
+
+            if spawned.0.insert(chunk_coord) {
+                generate_chunk(
+                    &mut commands,
+                    &mut meshes,
+                    &mut materials,
+                    &mut height_map,
+                    &mut generation_noise,
+                    &block_registry,
+                    &biom_registry,
+                    chunk_coord,
+                );
+            }
         }
     }
 }

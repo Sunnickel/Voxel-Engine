@@ -23,7 +23,7 @@ impl Plugin for GamePlugin {
     }
 }
 
-fn setup(mut commands: Commands, mut cursor_options: Single<&mut CursorOptions>) {
+fn setup(_commands: Commands, mut cursor_options: Single<&mut CursorOptions>) {
     cursor_options.visible = false;
     cursor_options.grab_mode = CursorGrabMode::Confined;
 }

@@ -4,7 +4,7 @@ pub mod chunks;
 pub mod seeding;
 pub mod utils;
 
-use crate::config::{BlockRegistry, GenerationNoise, HeightMap, SpawnChunkGenerated, SpawnPoint, SpawnedChunks, CHUNK_SIZE};
+use crate::config::{BiomRegistry, BlockRegistry, GenerationNoise, HeightMap, SpawnChunkGenerated, SpawnPoint, SpawnedChunks, CHUNK_SIZE};
 use crate::player::movement::movement;
 use crate::states::{GamePlugin, GameState};
 use crate::world::chunks::{generate_chunk, generate_neighbor_chunks};
@@ -17,12 +17,11 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::GameLoading), (setup_chunk, setup_sky))
-            .add_systems(
+        app.add_systems(
                 Update,
                 (generate_neighbor_chunks
-                    .after(movement)
-                    .run_if(in_state(GameState::InGame)),),
+                     .after(movement)
+                     .run_if(in_state(GameState::InGame)),),
             );
     }
 }
@@ -50,7 +49,7 @@ pub fn setup_sky(
             maximum_distance: 200.0,
             ..default()
         }
-        .build(),
+            .build(),
         GamePlugin::tag(),
     ));
 
@@ -68,14 +67,14 @@ pub fn setup_sky(
 
 pub fn setup_chunk(
     mut commands: Commands,
-    mut spawned: ResMut<SpawnedChunks>,
     mut height_map: ResMut<HeightMap>,
     mut gen_noise: ResMut<GenerationNoise>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut spawn_point: ResMut<SpawnPoint>,
     mut generated: ResMut<SpawnChunkGenerated>,
-    registry: Res<BlockRegistry>,
+    block_registry: Res<BlockRegistry>,
+    biom_registry: Res<BiomRegistry>,
 ) {
     let coord = IVec2::new(0, 0);
 
@@ -85,7 +84,8 @@ pub fn setup_chunk(
         &mut materials,
         &mut height_map,
         &mut gen_noise,
-        &registry,
+        &block_registry,
+        &biom_registry,
         coord,
     );
 

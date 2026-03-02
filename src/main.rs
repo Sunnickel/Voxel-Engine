@@ -3,7 +3,10 @@ mod player;
 mod states;
 mod world;
 
-use crate::config::{BlockRegistry, GenerationNoise, GlobalAssets, HeightMap, LastPlayerChunk, PlayerSpawned, Seed, SpawnChunkGenerated, SpawnPoint, SpawnedChunks, WorldReady};
+use crate::config::{
+    BiomRegistry, BlockRegistry, GenerationNoise, GlobalAssets, HeightMap, LastPlayerChunk,
+    PlayerSpawned, Seed, SpawnChunkGenerated, SpawnPoint, SpawnedChunks, WorldReady,
+};
 use crate::states::{AppLoadingPlugin, GameLoadingPlugin, GamePlugin, GameState, MenuPlugin};
 use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
@@ -49,6 +52,7 @@ fn main() {
         .init_resource::<LastPlayerChunk>()
         .init_resource::<WorldReady>()
         .init_resource::<BlockRegistry>()
+        .init_resource::<BiomRegistry>()
         .add_plugins((AppLoadingPlugin, MenuPlugin, GameLoadingPlugin, GamePlugin))
         .run();
 }

@@ -1,0 +1,24 @@
+(
+    id: "desert",
+    display_name: "Desert",
+
+    wetness: 0.1,
+    height: 0.45,
+    temperature: 0.95,
+    continentalness: 0.6,
+    erosion: 0.2,
+
+    height_multiplier: 0.5,
+    tint: (
+        r: 240,
+        g: 220,
+        b: 130,
+        a: 255
+    ),
+
+
+    surface: "sand",
+    underground: "sand",
+    underwater: "sand",
+    top_layer_threshold: 2,
+)

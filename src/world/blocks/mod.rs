@@ -1,7 +1,10 @@
 use crate::config::{BlockRegistry, CHUNK_SIZE, MAX_HEIGHT};
 use crate::world::chunks::ChunkData;
+use crate::world::utils::Rgba;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 
 #[derive(Component, Debug, Clone)]
 pub struct Block {
@@ -17,12 +20,35 @@ pub struct BlockDef {
     pub color: Rgba,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Rgba {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
+pub fn load_blocks(commands: &mut Commands) {
+    info!("Registering blocks");
+
+    let mut registry = BlockRegistry::default();
+
+    let dir = Path::new("assets/blocks");
+
+    let entries = fs::read_dir(dir).expect("blocks folder missing");
+
+    for entry in entries {
+        let path = entry.unwrap().path();
+
+        if path.extension().and_then(|s| s.to_str()) != Some("ron") {
+            continue;
+        }
+
+        let text = fs::read_to_string(&path).expect("failed reading block ron");
+
+        let def: BlockDef = ron::from_str(&text).expect("invalid block ron");
+
+        let id = registry.defs.len() as u16;
+
+        registry.name_to_id.insert(def.id.clone(), id);
+        registry.defs.push(def);
+    }
+
+    registry.air = registry.get_or_air("air");
+
+    commands.insert_resource(registry);
 }
 
 pub const FACES: [([i32; 3], [f32; 3], [[f32; 3]; 4]); 6] = [

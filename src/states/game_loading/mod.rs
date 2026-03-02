@@ -1,14 +1,11 @@
 use crate::config::{BlockRegistry, Seed, SpawnChunkGenerated, WorldReady};
 use crate::states::GameState;
-use crate::world::chunks::Chunk;
 use crate::world::seeding::SeedPlugin;
-use crate::world::WorldPlugin;
-use avian3d::prelude::Collider;
+use crate::world::{setup_chunk, setup_sky, WorldPlugin};
 use bevy::prelude::*;
 
-use crate::world::blocks::BlockDef;
-use std::fs;
-use std::path::Path;
+use crate::world::bioms::load_bioms;
+use crate::world::blocks::load_blocks;
 
 pub struct GameLoadingPlugin;
 
@@ -23,7 +20,7 @@ impl GameLoadingPlugin {
 
 impl Plugin for GameLoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::GameLoading), setup)
+        app.add_systems(OnEnter(GameState::GameLoading), (setup, setup_chunk, setup_sky).chain())
             .add_plugins((SeedPlugin, WorldPlugin))
             .add_systems(
                 Update,
@@ -33,42 +30,14 @@ impl Plugin for GameLoadingPlugin {
     }
 }
 
-fn setup(mut commands: Commands, mut seed: ResMut<Seed>) {
+pub fn setup(mut commands: Commands, mut seed: ResMut<Seed>, block_registry: ResMut<BlockRegistry>) {
     commands.spawn((Text::new("Loading..."), GameLoadingPlugin::tag()));
 
-    let mut registry = BlockRegistry::default();
-
-    let dir = Path::new("assets/blocks");
-
-    let entries = fs::read_dir(dir)
-        .expect("blocks folder missing");
-
-    for entry in entries {
-        let path = entry.unwrap().path();
-
-        if path.extension().and_then(|s| s.to_str()) != Some("ron") {
-            continue;
-        }
-
-        let text = fs::read_to_string(&path)
-            .expect("failed reading block ron");
-
-        let def: BlockDef =
-            ron::from_str(&text).expect("invalid block ron");
-
-        let id = registry.defs.len() as u16;
-
-        registry.name_to_id.insert(def.id.clone(), id);
-        registry.defs.push(def);
-    }
-
-    registry.air = registry.get_or_air("air");
-
-    commands.insert_resource(registry);
+    load_blocks(&mut commands);
+    load_bioms(&mut commands, &block_registry);
 
     seed.0 = 1234;
 }
-
 
 fn loading_update(
     mut next: ResMut<NextState<GameState>>,

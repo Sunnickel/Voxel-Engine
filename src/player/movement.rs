@@ -1,46 +1,34 @@
 use avian3d::{math::*, prelude::*};
 use bevy::{ecs::query::Has, prelude::*};
 
-/// A [`Message`] written for a movement input action.
 #[derive(Message)]
 pub enum MovementAction {
     Move(Vector2),
     Jump,
 }
 
-/// A marker component indicating that an entity is using a character controller.
 #[derive(Component)]
 pub struct CharacterController;
 
-/// A marker component indicating that an entity is on the ground.
 #[derive(Component)]
 #[component(storage = "SparseSet")]
 pub struct Grounded;
 
-/// The acceleration used for character movement.
 #[derive(Component)]
 pub struct MovementAcceleration(Scalar);
 
-/// The damping factor used for slowing down movement.
 #[derive(Component)]
 pub struct MovementDampingFactor(Scalar);
 
-/// The strength of a jump.
 #[derive(Component)]
 pub struct JumpImpulse(Scalar);
 
-/// The gravitational acceleration used for a character controller.
 #[derive(Component)]
 pub struct ControllerGravity(Vector);
 
-/// The maximum angle a slope can have for a character controller
-/// to be able to climb and jump. If the slope is steeper than this angle,
-/// the character will slide down.
 #[derive(Component)]
 pub struct MaxSlopeAngle(Scalar);
 
-/// A bundle that contains the components needed for a basic
-/// kinematic character controller.
 #[derive(Bundle)]
 pub struct CharacterControllerBundle {
     character_controller: CharacterController,
@@ -51,7 +39,6 @@ pub struct CharacterControllerBundle {
     movement: MovementBundle,
 }
 
-/// A bundle that contains components for character movement.
 #[derive(Bundle)]
 pub struct MovementBundle {
     acceleration: MovementAcceleration,
@@ -98,7 +85,7 @@ impl CharacterControllerBundle {
                 Quaternion::default(),
                 Dir3::NEG_Y,
             )
-            .with_max_distance(0.2),
+                .with_max_distance(0.2),
             gravity: ControllerGravity(gravity),
             movement: MovementBundle::default(),
         }
@@ -138,7 +125,6 @@ pub(crate) fn keyboard_input(
     }
 }
 
-/// Updates the [`Grounded`] status for character controllers.
 pub(crate) fn update_grounded(
     mut commands: Commands,
     mut query: Query<
@@ -163,7 +149,6 @@ pub(crate) fn update_grounded(
     }
 }
 
-/// Responds to [`MovementAction`] events and moves character controllers accordingly.
 pub(crate) fn movement(
     time: Res<Time>,
     mut movement_reader: MessageReader<MovementAction>,
@@ -236,17 +221,13 @@ pub(crate) fn kinematic_controller_collisions(
     >,
     time: Res<Time>,
 ) {
-    // Iterate through collisions and move the kinematic body to resolve penetration
     for contacts in collisions.iter() {
-        // Get the rigid body entities of the colliders (colliders could be children)
         let Ok([&ColliderOf { body: rb1 }, &ColliderOf { body: rb2 }]) =
             collider_rbs.get_many([contacts.collider1, contacts.collider2])
         else {
             continue;
         };
 
-        // Get the body of the character controller and whether it is the first
-        // or second entity in the collision.
         let is_first: bool;
 
         let character_rb: RigidBody;
@@ -267,13 +248,10 @@ pub(crate) fn kinematic_controller_collisions(
                 continue;
             };
 
-        // This system only handles collision response for kinematic character controllers.
         if !character_rb.is_kinematic() {
             continue;
         }
 
-        // Iterate through contact manifolds and their contacts.
-        // Each contact in a single manifold shares the same contact normal.
         for manifold in contacts.manifolds.iter() {
             let normal = if is_first {
                 -manifold.normal
@@ -283,7 +261,6 @@ pub(crate) fn kinematic_controller_collisions(
 
             let mut deepest_penetration: Scalar = Scalar::MIN;
 
-            // Solve each penetrating contact in the manifold.
             for contact in manifold.points.iter() {
                 if contact.penetration > 0.0 {
                     position.0 += normal * contact.penetration;
@@ -296,7 +273,6 @@ pub(crate) fn kinematic_controller_collisions(
                 continue;
             }
 
-            // Determine if the slope is climbable or if it's too steep to walk on.
             let slope_angle = normal.angle_between(Vector::Y);
             let climbable = max_slope_angle.is_some_and(|angle| slope_angle.abs() <= angle.0);
 

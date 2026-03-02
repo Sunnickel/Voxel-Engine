@@ -1,5 +1,5 @@
 use crate::config::GlobalAssets;
-use crate::states::{GamePlugin, GameState};
+use crate::states::GameState;
 use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy::time::common_conditions::on_timer;
