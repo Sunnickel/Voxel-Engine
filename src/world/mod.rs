@@ -12,6 +12,7 @@ use bevy::light::CascadeShadowConfigBuilder;
 use bevy::prelude::Commands;
 use bevy::prelude::*;
 use std::f32::consts::PI;
+use bevy::render::render_resource::Face;
 
 pub struct WorldPlugin;
 
@@ -76,6 +77,7 @@ pub fn setup_chunk(
     block_registry: Res<BlockRegistry>,
     biom_registry: Res<BiomRegistry>,
 ) {
+
     let coord = IVec2::new(0, 0);
 
     generate_chunk(

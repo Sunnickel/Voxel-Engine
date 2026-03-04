@@ -3,7 +3,7 @@ use crate::world::blocks::BlockDef;
 use bevy::asset::Handle;
 use bevy::math::{IVec2, Vec3};
 use bevy::platform::collections::{HashMap, HashSet};
-use bevy::prelude::{Font, IVec3, Resource};
+use bevy::prelude::{Entity, Font, IVec3, Resource, StandardMaterial};
 use noisy_bevy::simplex_noise_3d_seeded;
 
 #[derive(Resource, Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -47,7 +47,7 @@ pub struct SpawnPoint(pub(crate) IVec3);
 pub struct HeightMap(pub(crate) HashMap<IVec2, i32>);
 
 #[derive(Resource, Default)]
-pub struct SpawnedChunks(pub(crate) HashSet<IVec2>);
+pub struct SpawnedChunks(pub HashMap<IVec2, Entity>);
 
 #[derive(Resource, Default)]
 pub struct GenerationNoise {

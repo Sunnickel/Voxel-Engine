@@ -20,17 +20,24 @@ impl GameLoadingPlugin {
 
 impl Plugin for GameLoadingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::GameLoading), (setup, setup_chunk, setup_sky).chain())
-            .add_plugins((SeedPlugin, WorldPlugin))
-            .add_systems(
-                Update,
-                loading_update.run_if(in_state(GameState::GameLoading)),
-            )
-            .add_systems(OnExit(GameState::GameLoading), exit);
+        app.add_systems(
+            OnEnter(GameState::GameLoading),
+            (setup, setup_chunk, setup_sky).chain(),
+        )
+        .add_plugins((SeedPlugin, WorldPlugin))
+        .add_systems(
+            Update,
+            loading_update.run_if(in_state(GameState::GameLoading)),
+        )
+        .add_systems(OnExit(GameState::GameLoading), exit);
     }
 }
 
-pub fn setup(mut commands: Commands, mut seed: ResMut<Seed>, block_registry: ResMut<BlockRegistry>) {
+pub fn setup(
+    mut commands: Commands,
+    mut seed: ResMut<Seed>,
+    block_registry: ResMut<BlockRegistry>,
+) {
     commands.spawn((Text::new("Loading..."), GameLoadingPlugin::tag()));
 
     load_blocks(&mut commands);

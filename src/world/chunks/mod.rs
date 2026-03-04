@@ -1,4 +1,6 @@
-use crate::config::{BiomRegistry, BlockRegistry, LastPlayerChunk, CHUNK_SIZE, MAX_HEIGHT};
+use crate::config::{
+    BiomRegistry, BlockRegistry, LastPlayerChunk, CHUNK_SIZE, MAX_HEIGHT,
+};
 use crate::player::Player;
 use crate::states::GamePlugin;
 use crate::world::bioms::{pick_biome, BiomDef, Climate};
@@ -9,10 +11,8 @@ use avian3d::prelude::{Collider, Friction, RigidBody};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::math::Vec3;
 use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
-use bevy::pbr::{MeshMaterial3d, StandardMaterial};
-use bevy::prelude::{
-    info, Color, Commands, Component, IVec2, Name, Query, Res, ResMut, Transform, Visibility, With,
-};
+use bevy::pbr::{MeshMaterial3d};
+use bevy::prelude::{info, Color, Commands, Component, Entity, EntityCommands, IVec2, Name, Query, Res, ResMut, StandardMaterial, Transform, Visibility, With};
 use noisy_bevy::simplex_noise_3d_seeded;
 
 #[derive(Component, Debug)]
@@ -38,6 +38,7 @@ pub struct ChunkCoord {
     pub x: i32,
     pub z: i32,
 }
+
 
 fn terrain_block(
     wx: i32,
@@ -124,8 +125,15 @@ fn generate_block_data(
             height_map.0.insert(IVec2::new(wx, wz), surface);
 
             for y in 0..MAX_HEIGHT as usize {
-                data.blocks[x][y][z] =
-                    terrain_block(wx, y as i32, surface, noise, block_registry, biom_registry, biome);
+                data.blocks[x][y][z] = terrain_block(
+                    wx,
+                    y as i32,
+                    surface,
+                    noise,
+                    block_registry,
+                    biom_registry,
+                    biome,
+                );
             }
         }
     }
@@ -159,7 +167,7 @@ fn build_chunk_mesh(data: &ChunkData, block_registry: &BlockRegistry) -> Mesh {
                     let base = positions.len() as u32;
                     let color = block_color(block_registry, id, face_idx);
 
-                    for v in face_verts {
+                    for v in face_verts.iter() {
                         positions.push([x as f32 + v[0], y as f32 + v[1], z as f32 + v[2]]);
                         normals.push(*normal);
                         colors.push(color);
@@ -198,7 +206,7 @@ pub fn generate_chunk(
     block_register: &BlockRegistry,
     biom_registry: &BiomRegistry,
     coord: IVec2,
-) {
+) -> Entity {
     let cx = coord.x;
     let cz = coord.y;
 
@@ -246,6 +254,8 @@ pub fn generate_chunk(
     if let Some(collider) = collider {
         entity.insert(collider);
     }
+
+    entity.id()
 }
 
 fn build_collider_from_mesh(mesh: &Mesh) -> Option<Collider> {
@@ -266,12 +276,12 @@ fn build_collider_from_mesh(mesh: &Mesh) -> Option<Collider> {
 
     let indices = mesh.indices()?;
     let triangles: Vec<[u32; 3]> = match indices {
-        bevy::mesh::Indices::U32(idx) => idx
+        Indices::U32(idx) => idx
             .chunks_exact(3)
             // Flip winding: swap index 1 and 2
             .map(|c| [c[0], c[2], c[1]])
             .collect(),
-        bevy::mesh::Indices::U16(idx) => idx
+        Indices::U16(idx) => idx
             .chunks_exact(3)
             .map(|c| [c[0] as u32, c[2] as u32, c[1] as u32])
             .collect(),
@@ -302,15 +312,25 @@ pub fn generate_neighbor_chunks(
     };
 
     let current_chunk = player_chunk_coords(tf);
-
     if last_chunk.0 == Some(current_chunk) {
         return;
     }
-
     last_chunk.0 = Some(current_chunk);
-    info!("Player entered new chunk {:?}", current_chunk);
 
-    let radius: i32 = 16;
+    let radius: i32 = 8;
+    let unload_radius: i32 = radius + 2;
+
+    spawned.0.retain(|&coord, &mut entity| {
+        let dx = coord.x - current_chunk.x;
+        let dy = coord.y - current_chunk.y;
+        let outside = dx * dx + dy * dy > unload_radius * unload_radius;
+
+        if outside {
+            commands.entity(entity).despawn();
+        }
+
+        !outside
+    });
 
     for dx in -radius..=radius {
         for dy in -radius..=radius {
@@ -320,8 +340,8 @@ pub fn generate_neighbor_chunks(
 
             let chunk_coord = IVec2::new(current_chunk.x + dx, current_chunk.y + dy);
 
-            if spawned.0.insert(chunk_coord) {
-                generate_chunk(
+            if !spawned.0.contains_key(&chunk_coord) {
+                let entity = generate_chunk(
                     &mut commands,
                     &mut meshes,
                     &mut materials,
@@ -331,6 +351,7 @@ pub fn generate_neighbor_chunks(
                     &biom_registry,
                     chunk_coord,
                 );
+                spawned.0.insert(chunk_coord, entity);
             }
         }
     }

@@ -4,8 +4,9 @@ mod states;
 mod world;
 
 use crate::config::{
-    BiomRegistry, BlockRegistry, GenerationNoise, GlobalAssets, HeightMap, LastPlayerChunk,
-    PlayerSpawned, Seed, SpawnChunkGenerated, SpawnPoint, SpawnedChunks, WorldReady,
+    BiomRegistry, BlockRegistry, GenerationNoise, GlobalAssets, HeightMap,
+    LastPlayerChunk, PlayerSpawned, Seed, SpawnChunkGenerated, SpawnPoint, SpawnedChunks,
+    WorldReady,
 };
 use crate::states::{AppLoadingPlugin, GameLoadingPlugin, GamePlugin, GameState, MenuPlugin};
 use bevy::log::{Level, LogPlugin};

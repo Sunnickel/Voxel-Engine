@@ -3,7 +3,7 @@ pub mod movement;
 
 use crate::config::WorldReady;
 pub(crate) use crate::config::{PlayerSpawned, SpawnPoint};
-use crate::player::camera::{mouse_look, LookAngles};
+use crate::player::camera::{mouse_look, occlusion_culling, LookAngles};
 use crate::player::movement::{
     apply_gravity, apply_movement_damping, keyboard_input, kinematic_controller_collisions,
     movement, update_grounded, CharacterControllerBundle, MovementAction,
@@ -27,6 +27,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (
+                    occlusion_culling,
                     keyboard_input,
                     update_grounded,
                     apply_gravity,
