@@ -2,10 +2,10 @@
     id: "desert",
     display_name: "Desert",
 
-    wetness: 0.1,
     height: 0.45,
-    temperature: 0.95,
-    continentalness: 0.6,
+    temperature: 0.9,
+    wetness: 0.1,
+    continentalness: 0.5,
     erosion: 0.2,
 
     height_multiplier: 0.5,

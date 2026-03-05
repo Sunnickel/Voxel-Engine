@@ -10,9 +10,9 @@ use crate::world::{GenerationNoise, HeightMap, SpawnedChunks};
 use avian3d::prelude::{Collider, Friction, RigidBody};
 use bevy::asset::{Assets, RenderAssetUsages};
 use bevy::math::Vec3;
-use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology};
+use bevy::mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology, VertexAttributeValues};
 use bevy::pbr::{MeshMaterial3d};
-use bevy::prelude::{info, Color, Commands, Component, Entity, EntityCommands, IVec2, Name, Query, Res, ResMut, StandardMaterial, Transform, Visibility, With};
+use bevy::prelude::{info, AlphaMode, Color, Commands, Component, Entity, EntityCommands, IVec2, Name, Query, Res, ResMut, StandardMaterial, Transform, Visibility, With};
 use noisy_bevy::simplex_noise_3d_seeded;
 
 #[derive(Component, Debug)]
@@ -119,7 +119,7 @@ fn generate_block_data(
             };
             let biome = pick_biome(&col_climate, &biom_registry.defs);
 
-            let surface = (8.0 + n1 * 4.0 + n2 * 6.0).floor() as i32;
+            let surface = ((8.0 + n1 * 4.0 + n2 * 6.0) * biome.height_multiplier).floor() as i32;
             let surface = surface.clamp(2, MAX_HEIGHT - 1);
 
             height_map.0.insert(IVec2::new(wx, wz), surface);
@@ -155,7 +155,7 @@ fn build_chunk_mesh(data: &ChunkData, block_registry: &BlockRegistry) -> Mesh {
                     continue;
                 }
 
-                for (face_idx, (dir, normal, face_verts)) in FACES.iter().enumerate() {
+                for (_, (dir, normal, face_verts)) in FACES.iter().enumerate() {
                     let nx = x as i32 + dir[0];
                     let ny = y as i32 + dir[1];
                     let nz = z as i32 + dir[2];
@@ -165,7 +165,7 @@ fn build_chunk_mesh(data: &ChunkData, block_registry: &BlockRegistry) -> Mesh {
                     }
 
                     let base = positions.len() as u32;
-                    let color = block_color(block_registry, id, face_idx);
+                    let color = block_color(block_registry, id);
 
                     for v in face_verts.iter() {
                         positions.push([x as f32 + v[0], y as f32 + v[1], z as f32 + v[2]]);
@@ -190,10 +190,12 @@ fn build_chunk_mesh(data: &ChunkData, block_registry: &BlockRegistry) -> Mesh {
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
     );
+
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
     mesh.insert_indices(Indices::U32(indices));
+
     mesh
 }
 
@@ -233,7 +235,9 @@ pub fn generate_chunk(
     let material = StandardMaterial {
         base_color: Color::WHITE,
         perceptual_roughness: 0.9,
+        reflectance: 0.0,
         metallic: 0.0,
+        alpha_mode: AlphaMode::Opaque,
         ..Default::default()
     };
 
@@ -278,7 +282,6 @@ fn build_collider_from_mesh(mesh: &Mesh) -> Option<Collider> {
     let triangles: Vec<[u32; 3]> = match indices {
         Indices::U32(idx) => idx
             .chunks_exact(3)
-            // Flip winding: swap index 1 and 2
             .map(|c| [c[0], c[2], c[1]])
             .collect(),
         Indices::U16(idx) => idx

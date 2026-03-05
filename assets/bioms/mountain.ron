@@ -2,10 +2,10 @@
     id: "mountain",
     display_name: "Mountain",
 
-    wetness: 0.4,
     height: 0.5,
     temperature: 0.1,
-    continentalness: 0.7,
+    wetness: 0.3,
+    continentalness: 0.8,
     erosion: 0.4,
 
     height_multiplier: 1.5,

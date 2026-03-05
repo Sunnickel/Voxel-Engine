@@ -68,21 +68,21 @@ impl GenerationNoise {
 
     pub fn temperature(&self, cx: i32, cz: i32) -> f32 {
         simplex_noise_3d_seeded(
-            Vec3::new(cx as f32 * 0.05, 0.0, cz as f32 * 0.05),
+            Vec3::new(cx as f32 * 0.002, 0.0, cz as f32 * 0.002),
             self.temperature,
         )
     }
 
     pub fn wetness(&self, cx: i32, cz: i32) -> f32 {
         simplex_noise_3d_seeded(
-            Vec3::new(cx as f32 * 0.05, 0.0, cz as f32 * 0.05),
+            Vec3::new(cx as f32 * 0.004, 0.0, cz as f32 * 0.004),
             self.wetness,
         )
     }
 
     pub fn continentalness(&self, cx: i32, cz: i32) -> f32 {
         simplex_noise_3d_seeded(
-            Vec3::new(cx as f32 * 0.05, 0.0, cz as f32 * 0.05),
+            Vec3::new(cx as f32 * 0.002, 0.0, cz as f32 * 0.002),
             self.continentalness,
         )
     }

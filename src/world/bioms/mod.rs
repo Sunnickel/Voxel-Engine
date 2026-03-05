@@ -1,7 +1,7 @@
-use crate::config::{BiomRegistry, BlockRegistry};
+use crate::config::{BiomRegistry, BlockRegistry, GenerationNoise};
 use crate::world::utils::Rgba;
 use bevy::log::info;
-use bevy::prelude::{Commands, Component};
+use bevy::prelude::{Commands, Component, Res};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -55,15 +55,10 @@ struct RawBiomDef {
 }
 
 fn biome_distance(a: &Climate, b: &BiomDef) -> f32 {
-    let temp_w = 2.0;
-    let wet_w = 1.5;
-    let height_w = 0.7;
-    let cont_w = 1.2;
-
-    (a.temperature - b.temperature).powi(2) * temp_w +
-        (a.wetness - b.wetness).powi(2) * wet_w +
-        (a.height - b.height).powi(2) * height_w +
-        (a.continentalness - b.continentalness).powi(2) * cont_w
+    (a.temperature - b.temperature).powi(2) * 3.0 +
+        (a.wetness - b.wetness).powi(2) * 2.0 +
+        (a.continentalness - b.continentalness).powi(2) * 0.5 +
+        (a.height - b.height).powi(2) * 0.3
 }
 
 pub fn pick_biome<'a>(climate: &Climate, biomes: &'a [BiomDef]) -> &'a BiomDef {
@@ -79,8 +74,19 @@ pub fn pick_biome<'a>(climate: &Climate, biomes: &'a [BiomDef]) -> &'a BiomDef {
         .unwrap()
 }
 
-pub fn load_bioms(commands: &mut Commands, block_registry: &BlockRegistry) {
+pub fn load_bioms(commands: &mut Commands, block_registry: &BlockRegistry, noise: Res<GenerationNoise>) {
     info!("Registering bioms");
+    for i in [0, 100, 500, 1000, 2000] {
+        info!(
+        "x={} temp={:.3} wet={:.3} height={:.3} cont={:.3}",
+        i,
+        noise.temperature(i, 0),
+        noise.wetness(i, 0),
+        noise.height(i, 0),
+        noise.continentalness(i, 0),
+    );
+    }
+
     let mut registry = BiomRegistry::default();
 
     let dir = Path::new("assets/bioms");
@@ -117,8 +123,8 @@ pub fn load_bioms(commands: &mut Commands, block_registry: &BlockRegistry) {
 
         let id = raw_defs.clone().len() as u16;
         registry.name_to_id.insert(def.id.clone(), id);
-        registry.defs = raw_defs.clone();
         raw_defs.push(def);
+        registry.defs = raw_defs.clone();
     }
 
     registry.plains = registry.get_or_plains("plains");

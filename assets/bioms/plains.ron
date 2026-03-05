@@ -2,10 +2,10 @@
     id: "plains",
     display_name: "Plains",
 
-    wetness: 0.5,
     height: 0.4,
-    temperature: 0.6,
-    continentalness: 0.5,
+    temperature: 0.5,
+    wetness: 0.5,
+    continentalness: 0.3,
     erosion: 0.3,
 
     height_multiplier: 1,

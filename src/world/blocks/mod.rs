@@ -120,21 +120,10 @@ pub const FACES: [([i32; 3], [f32; 3], [[f32; 3]; 4]); 6] = [
     ),
 ];
 
-pub fn block_color(registry: &BlockRegistry, id: u16, face_index: usize) -> [f32; 4] {
+pub fn block_color(registry: &BlockRegistry, id: u16) -> [f32; 4] {
     let def = &registry.defs[id as usize];
 
-    let tint = match face_index {
-        0 => 1.0,
-        1 => 0.55,
-        _ => 0.75,
-    };
-
-    [
-        def.color.r * tint,
-        def.color.g * tint,
-        def.color.b * tint,
-        def.color.a,
-    ]
+    [def.color.r, def.color.g, def.color.b, def.color.a]
 }
 
 pub fn is_air(registry: &BlockRegistry, data: &ChunkData, x: i32, y: i32, z: i32) -> bool {

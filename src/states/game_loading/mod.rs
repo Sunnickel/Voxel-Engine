@@ -1,4 +1,4 @@
-use crate::config::{BlockRegistry, Seed, SpawnChunkGenerated, WorldReady};
+use crate::config::{BlockRegistry, GenerationNoise, Seed, SpawnChunkGenerated, WorldReady};
 use crate::states::GameState;
 use crate::world::seeding::SeedPlugin;
 use crate::world::{setup_chunk, setup_sky, WorldPlugin};
@@ -37,13 +37,14 @@ pub fn setup(
     mut commands: Commands,
     mut seed: ResMut<Seed>,
     block_registry: ResMut<BlockRegistry>,
+    noise: Res<GenerationNoise>,
 ) {
     commands.spawn((Text::new("Loading..."), GameLoadingPlugin::tag()));
 
     load_blocks(&mut commands);
-    load_bioms(&mut commands, &block_registry);
+    load_bioms(&mut commands, &block_registry, noise);
 
-    seed.0 = 1234;
+    seed.0 = 68135;
 }
 
 fn loading_update(
